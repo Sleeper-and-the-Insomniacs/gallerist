@@ -14,6 +14,7 @@ import Quiz from './quiz/Quiz';
 import MemeMaker from './meme/MemeMaker';
 import ArtHeist from './ArtHeist/ArtHeist';
 import CrackCode from './ArtHeist/CrackCode';
+import DrawingCanvas from './DrawingCanvas';
 
 const App = createBrowserRouter([
   {
@@ -71,6 +72,10 @@ const App = createBrowserRouter([
       {
         path: '/home/planHeist',
         element: <CrackCode />,
+      },
+      {
+        path: '/home/canvas',
+        element: <DrawingCanvas />,
       },
     ],
   },

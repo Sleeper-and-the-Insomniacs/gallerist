@@ -3,7 +3,7 @@ const express = require('express');
 
 const dbRouter = express.Router();
 
-const { User, Art, Vault, Watch } = require('../db/index');
+const { User, Art, Vault, Watch, BlackMarketArt } = require('../db/index');
 
 // GET: to return user's profile info upon load of Profile component (could be used elsewhere)
 dbRouter.get('/db/user/', (req, res) => {
@@ -531,4 +531,23 @@ dbRouter.post('/db/stealArt/:_id', (req, res) => {
       console.error('Could not locate art');
     });
 });
+
+// POST- a new Black Market listing should be posted whenever art is sold to the Black Market
+dbRouter.post('/db/blackmarket/sell/:_id', (req, res) => {
+  const { _id } = req.params;
+  const userId = req.user.doc._id;
+
+  Vault.findOneAndUpdate({ owner: userId }, { $pull: { artGallery: _id } })
+    .then(() => Art.findByIdAndUpdate(_id, { userGallery: { name: null, googleId: null } }))
+    .then(() => BlackMarketArt.create({ artwork: _id, status: 'active', price: 5000 }))
+    .then((newListing) => {
+      User.findByIdAndUpdate(userId, { $inc: { wallet: 50 } })
+        .then(() => res.status(201).send(newListing));
+    })
+    .catch((err) => {
+      console.error('Failed to sell to Black Market', err);
+      res.sendStatus(500);
+    });
+});
+
 module.exports = { dbRouter };

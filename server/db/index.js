@@ -142,6 +142,7 @@ const BlackMarketArtSchema = new Schema({
   artwork: {
     type: Schema.Types.ObjectId,
     ref: 'Art',
+    sparse: true,
   },
 });
 

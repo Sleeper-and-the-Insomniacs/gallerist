@@ -63,7 +63,7 @@ const App = createBrowserRouter([
         element: <Quiz />,
       },
       {
-        path: '/home/art/:imageId',
+        path: '/home/art/:_id',
         element: <PhotoInfo />,
       },
       {

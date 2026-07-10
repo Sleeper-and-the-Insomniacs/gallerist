@@ -34,7 +34,6 @@ function Search() {
         artist: artObj.people[0].displayname,
         date: artObj.dated,
         culture: artObj.culture,
-        imageId: artObj.id,
         url: artObj.url,
         imageUrl: artObj.images[0].baseimageurl,
         isForSale: false,
@@ -73,7 +72,7 @@ function Search() {
   function idSearch(id) {
     axios(`/huam/object/${id}`)
       .then(({ data }) => {
-        // console.log(data);
+        console.log(data);
         if (data[0].images.length === 0) {
           setMessage('Sorry this piece is no longer available');
           handleShow();

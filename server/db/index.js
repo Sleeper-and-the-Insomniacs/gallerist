@@ -110,12 +110,23 @@ const WatchedSchema = new Schema({
 });
 
 const BlackMarketArtSchema = new Schema({
+  itemType: { type: String, enum: ['painting', 'voucher'], default: 'painting' },
+  title: { type: String },
+  artist: { type: String },
+  date: { type: String },
+  culture: { type: String },
+  imageId: { type: String, unique: true },
+  url: { type: String },
+  imageUrl: { type: String },
+  isforsale: { type: Boolean, default: false },
+  price: { type: Number, default: 0 },
+  ownerId: { type: String, default: 'black_market' },
+  haggleCount: { type: Number, default: 0 },
+  voucherValue: { type: Number, default: 0 },
   artwork: {
     type: Schema.Types.ObjectId,
-    ref: 'Artwork',
+    ref: 'Art',
   },
-  price: { type: Number, default: 5000 },
-  status: { type: String, default: 'active' },
 });
 
 const User = model('User', UserSchema);

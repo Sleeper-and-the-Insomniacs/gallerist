@@ -14,6 +14,7 @@ const { showcaseRouter } = require('./routes/showcase/Showcase');
 const { quizRouter } = require('./routes/quizDBrouter');
 const { userArtRouter } = require('./routes/userArtDBRouter');
 const blackMarketRouter = require('./routes/blackMarket');
+const socialRouter = require('./routes/social/socialRouter');
 
 require('dotenv').config();
 
@@ -74,6 +75,9 @@ app.use('/', userArtRouter);
 
 // Black Market routes
 app.use('/db/blackmarket', blackMarketRouter);
+
+// Social Routes
+app.use('/social', socialRouter);
 
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, '../client/dist/index.html'));

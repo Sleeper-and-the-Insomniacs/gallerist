@@ -39,10 +39,14 @@ function Canvas() {
   }, []);
 
   useEffect(() => {
+    fetchDrawings();
+  }, []);
+
+  function fetchDrawings() {
     axios.get('/db/drawings')
       .then((res) => setDrawings(res.data))
       .catch((err) => console.error('Could not fetch drawings: ', err));
-  }, []);
+  }
 
   function startStroke(e) {
     isPainting.current = true;
@@ -105,7 +109,7 @@ function Canvas() {
           title,
         },
       })
-        .then(() => console.log('Saved'))
+        .then(fetchDrawings)
         .catch((err) => console.error('Save failed: ', err));
     } else {
       axios.put(`/db/drawings/${currentDrawing.id}`, {
@@ -114,23 +118,27 @@ function Canvas() {
           imageUrl,
         },
       })
-        .then(() => console.log('Drawing updated successfully'))
+        .then(fetchDrawings)
         .catch((err) => console.log('Save failed: ', err));
     }
   }
 
   function loadDrawing(id) {
-    const drawing = drawings.find((d) => d.id === id);
     const canvas = paintCanvasRef.current;
     const ctx = canvas.getContext('2d');
-    let img = null;
-    if (drawing) {
-      setCurrentDrawing(drawing);
-      img = new Image();
-      img.src = drawing.imageUrl;
+    const drawing = drawings.find((d) => d.id === id);
+
+    if (!drawing) {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      setCurrentDrawing(null);
+      return;
     }
+
+    setCurrentDrawing(drawing);
+    const img = new Image();
+    img.src = drawing.imageUrl;
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    img.onload = () => ctx.drawImage(img || , 0, 0, canvas.width, canvas.height);
+    img.onload = () => ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
   }
 
   return (

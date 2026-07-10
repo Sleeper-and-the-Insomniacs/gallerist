@@ -2,7 +2,7 @@
 import React from 'react';
 import axios from 'axios';
 
-function LikeButtons({ id }) {
+function LikeButtons({ id, getAllImages }) {
   const updateLikes = ({ target }) => {
     const updObj = {
       likeInfo: {
@@ -13,9 +13,7 @@ function LikeButtons({ id }) {
 
     axios
       .patch(`/db/art/${id}`, updObj)
-      .then(() => {
-        console.log('triggered');
-      })
+      .then(getAllImages)
       .catch((err) => {
         console.error('Error patching art in database!:', err);
       });

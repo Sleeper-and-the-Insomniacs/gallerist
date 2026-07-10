@@ -41,7 +41,7 @@ const ArtSchema = new Schema({
   userGallery: Object,
   isForSale: Boolean,
   price: Number,
-});
+}, { timestamps: true });
 
 const MemeSchema = new Schema({
   title: String,
@@ -111,6 +111,20 @@ const WatchedSchema = new Schema({
   isWatched: Boolean,
 });
 
+const UserArtSchema = new Schema({
+  imageUrl: {
+    type: String,
+    required: true,
+  },
+  posted: {
+    type: Boolean,
+    default: false,
+  },
+});
+
+UserArtSchema.virtual('id').get(() => this.imageId ?? this._id);
+UserArtSchema.set('toJSON', { virtuals: true });
+
 const BlackMarketArtSchema = new Schema({
   artwork: {
     type: Schema.Types.ObjectId,
@@ -127,8 +141,9 @@ const Showcase = model('Showcase', ShowcaseSchema);
 const Vault = model('Vault', VaultSchema);
 const AICart = model('AICart', AIC_Schema);
 const Watch = model('Watch', WatchedSchema);
+const UserArt = Art.discriminator('UserArt', UserArtSchema);
 const BlackMarketArt = model('BlackMarketArt', BlackMarketArtSchema);
 
 module.exports = {
-  User, Art, Meme, Showcase, Vault, AICart, Watch, BlackMarketArt,
+  User, Art, Meme, Vault, AICart, Watch, UserArt, BlackMarketArt, Showcase,
 };

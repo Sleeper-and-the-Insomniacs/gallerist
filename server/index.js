@@ -12,6 +12,7 @@ const { dbRouter } = require('./routes/database');
 const { MemeRouter } = require('./routes/meme/Meme');
 const { showcaseRouter } = require('./routes/showcase/Showcase');
 const { quizRouter } = require('./routes/quizDBrouter');
+const { userArtRouter } = require('./routes/userArtDBRouter');
 const blackMarketRouter = require('./routes/blackMarket');
 
 require('dotenv').config();
@@ -67,6 +68,9 @@ app.use('/showcase', showcaseRouter);
 
 // Quiz DB Routes
 app.use('/', quizRouter);
+
+// Drawing DB Routes
+app.use('/', userArtRouter);
 
 // Black Market routes
 app.use('/db/blackmarket', blackMarketRouter);

@@ -18,6 +18,7 @@ import ShowcaseDetail from './Showcase/ShowcaseDetail';
 import ShowcaseSetup from './Showcase/ShowcaseSetup';
 import ArtHeist from './ArtHeist/ArtHeist';
 import CrackCode from './ArtHeist/CrackCode';
+import Canvas from './Canvas';
 
 const App = createBrowserRouter([
   {
@@ -91,6 +92,10 @@ const App = createBrowserRouter([
       {
         path: '/home/planHeist',
         element: <CrackCode />,
+      },
+      {
+        path: '/home/canvas',
+        element: <Canvas />,
       },
     ],
   },

@@ -171,6 +171,7 @@ function Gallery() {
           <Col key={`${image.imageId}-${i}`}>
             <GalleryListItem
               image={image}
+              getAllImages={getAllImages}
             />
           </Col>
         ))}

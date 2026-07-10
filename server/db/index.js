@@ -41,6 +41,14 @@ const ArtSchema = new Schema({
   userGallery: Object,
   isForSale: Boolean,
   price: Number,
+  likes: {
+    type: Number,
+    default: 0,
+  },
+  dislikes: {
+    type: Number,
+    default: 0,
+  },
 }, { timestamps: true });
 
 const MemeSchema = new Schema({

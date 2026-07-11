@@ -83,7 +83,7 @@ function ShowcaseDetail() {
           >
             <track kind="captions" />
           </audio>
-          <p className="text-muted mt=1">
+          <p className="text-muted mt-1">
             {`Now playing track ${trackIndex + 1} of ${playOrder.length}${showcase.shuffle ? ' (shuffled)' : ''}`}
           </p>
         </Row>

@@ -1,3 +1,4 @@
+/* eslint-disable max-len */
 const express = require('express');
 
 const blackMarketRouter = express.Router();
@@ -30,6 +31,7 @@ blackMarketRouter.post('/db/blackmarket/sell/:_id', (req, res) => {
       imageUrl: artData.imageUrl,
       ownerId: 'black_market',
       price: 5000,
+      voucherValue: 20000,
       artwork: _id,
     }))
     .then((newListing) => User.findByIdAndUpdate(userId, { $inc: { wallet: 1000 } })
@@ -44,7 +46,31 @@ blackMarketRouter.post('/db/blackmarket/sell/:_id', (req, res) => {
 blackMarketRouter.get('/db/blackmarket', (req, res) => {
   BlackMarketArt.find({ ownerId: 'black_market' })
     .then((listings) => {
-      const shuffled = listings.sort(() => 0.5 - Math.random());
+      // filter out existing vouchers so we only count actual art
+      const art = listings.filter((item) => item.itemType !== 'voucher');
+      const artCount = art.length;
+      let voucherCount = 0;
+
+      // if the black market isn't full- we use vouchers to fill it
+      if (artCount === 0) voucherCount = 3;
+      else if (artCount === 1) voucherCount = 2;
+      else if (artCount === 2) voucherCount = 1;
+      // if black market is full- still a chance for a voucher to appear
+      else if (artCount >= 3 && Math.random() < 0.05) voucherCount = 1;
+
+      // create voucher objects
+      const vouchers = Array(voucherCount).fill(null).map((_, i) => ({
+        _id: `voucher_${Date.now()}_${i}`,
+        title: 'Voucher',
+        imageUrl: 'https://i.postimg.cc/ZK71b1QY/voucher-square.jpg',
+        itemType: 'voucher',
+        price: 5000,
+        voucherValue: 20000,
+      }));
+
+      // combine art and vouchers, then shuffle and slice
+      const combined = [...art, ...vouchers];
+      const shuffled = combined.sort(() => 0.5 - Math.random());
       const selected = shuffled.slice(0, 3);
 
       res.status(200).send(selected || []);
@@ -55,19 +81,17 @@ blackMarketRouter.get('/db/blackmarket', (req, res) => {
     });
 });
 
-// PATCH route that updates a user's voucher number when they use it
-blackMarketRouter.patch('/db/blackmarket/voucher/:itemId', (req, res) => {
-  const { itemId } = req.params;
+// PATCH route that redeems one of a user's vouchers.
+blackMarketRouter.patch('/db/blackmarket/voucher', (req, res) => {
   const userId = req.user.doc._id;
 
-  BlackMarketArt.findById(itemId)
-    .then((item) => {
-      if (!item || item.itemType !== 'voucher') {
-        return res.status(400).send('Invalid item type');
+  User.findById(userId)
+    .then((user) => {
+      if (!user || !user.vouchers || user.vouchers < 1) {
+        return res.status(400).send('No vouchers to redeem');
       }
 
-      return User.findByIdAndUpdate(userId, { $inc: { wallet: item.voucherValue } })
-        .then(() => BlackMarketArt.findByIdAndDelete(itemId))
+      return User.findByIdAndUpdate(userId, { $inc: { wallet: 20000, vouchers: -1 } })
         .then(() => res.sendStatus(200));
     })
     .catch((err) => {
@@ -85,13 +109,15 @@ blackMarketRouter.patch('/db/blackmarket/haggle', (req, res) => {
     return res.sendStatus(400);
   }
 
+  const artListingIds = listingIds.filter((id) => !id.startsWith('voucher_'));
+
   // 50/50 chance for success or failure
   const isSuccess = Math.random() >= 0.5;
   // on success = 75% of cost, -25% discount
   // on fail = 125% of cost, +25% increase
   const multiplier = isSuccess ? 0.75 : 1.25;
 
-  return BlackMarketArt.find({ _id: { $in: listingIds } })
+  return BlackMarketArt.find({ _id: { $in: artListingIds } })
     .then((listings) => {
       const updatePromises = listings.map((listing) => {
         // use default 5000 if price isn't set yet
@@ -124,11 +150,19 @@ blackMarketRouter.patch('/db/blackmarket/haggle', (req, res) => {
     });
 });
 
-// DELETE: Purchase an artwork and remove it from the Black Market
+// DELETE: Purchase an artwork and remove it from the Black Market or redeem voucher
 blackMarketRouter.delete('/db/blackmarket/buy/:_id', (req, res) => {
   const { _id } = req.params;
   const userId = req.user.doc._id;
   const { name, googleId } = req.user.doc;
+
+  if (_id.startsWith('voucher_')) {
+    return User.findByIdAndUpdate(userId, {
+      $inc: { wallet: -5000, vouchers: 1 },
+    })
+      .then(() => res.sendStatus(200))
+      .catch((err) => res.status(500).send(err));
+  }
 
   BlackMarketArt.findById(_id)
     .then((listing) => {
@@ -138,17 +172,14 @@ blackMarketRouter.delete('/db/blackmarket/buy/:_id', (req, res) => {
         if (user.wallet < listing.price) return res.status(400).send('Insufficient funds');
 
         return User.findByIdAndUpdate(userId, { $inc: { wallet: -listing.price } })
-          .then(() => Vault.findOneAndUpdate(
-            { owner: userId },
-            { $push: { artGallery: listing.artwork } },
-          ))
+          .then(() => Vault.findOneAndUpdate({ owner: userId }, { $push: { artGallery: listing.artwork } }))
           .then(() => Art.findByIdAndUpdate(listing.artwork, { userGallery: { name, googleId } }))
           .then(() => BlackMarketArt.findByIdAndDelete(_id))
           .then(() => res.sendStatus(200));
       });
     })
     .catch((err) => {
-      console.error('Failed to purchase art', err);
+      console.error('Failed to purchase item', err);
       res.sendStatus(500);
     });
 });

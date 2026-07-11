@@ -16,7 +16,10 @@ const TRACKS = [
   { label: 'amb064_21', value: '/audio/amb064_21.m4a' },
   { label: 'dyingRecursively-yes', value: '/audio/dyingRecursively-yes.m4a' },
   { label: 'dyingRecursively', value: '/audio/dyingRecursively.m4a' },
-  { label: 'forSleepersAndInsomniacs', value: '/audio/forSleepersAndInsomniacs.m4a' },
+  {
+    label: 'forSleepersAndInsomniacs',
+    value: '/audio/forSleepersAndInsomniacs.m4a',
+  },
   { label: 'leaking', value: '/audio/leaking.m4a' },
   { label: 'noEndpoint', value: '/audio/noEndpoint.m4a' },
 ];
@@ -83,9 +86,9 @@ function ShowcaseSetup() {
   }
 
   function togglePlaylistTrack(value) {
-    setPlaylist((prev) => (
-      prev.includes(value) ? prev.filter((v) => v !== value) : [...prev, value]
-    ));
+    setPlaylist((prev) => (prev.includes(value)
+      ? prev.filter((v) => v !== value)
+      : [...prev, value]));
   }
 
   function moveTrack(index, direction) {
@@ -104,7 +107,15 @@ function ShowcaseSetup() {
 
   function handleSave(isDraft) {
     const payload = {
-      title, message, playlist, shuffle, startDate, endDate, auctionDate, artPieces, isDraft,
+      title,
+      message,
+      playlist,
+      shuffle,
+      startDate,
+      endDate,
+      auctionDate,
+      artPieces,
+      isDraft,
     };
 
     const request = editingId
@@ -127,15 +138,21 @@ function ShowcaseSetup() {
     <Container>
       <Row className="mb-3">
         <Col>
-          <h1><strong>Showcase Studio</strong></h1>
+          <h1>
+            <strong>Showcase Studio</strong>
+          </h1>
           <p className="text-muted mb-0">
-            {editingId ? 'Update the details of your showcase.' : 'Curate a new showcase from your gallery.'}
+            {editingId
+              ? 'Update the details of your showcase.'
+              : 'Curate a new showcase from your gallery.'}
           </p>
         </Col>
       </Row>
 
       <Card>
-        <Card.Header as="h5">{editingId ? 'Edit Showcase' : 'Create Showcase'}</Card.Header>
+        <Card.Header as="h5">
+          {editingId ? 'Edit Showcase' : 'Create Showcase'}
+        </Card.Header>
         <Card.Body>
           <Form onSubmit={handleSubmit}>
             <Form.Group className="mb-3">
@@ -175,7 +192,10 @@ function ShowcaseSetup() {
                   {playlist.map((value, index) => {
                     const track = TRACKS.find((t) => t.value === value);
                     return (
-                      <ListGroup.Item key={value} className="d-flex justify-content-between align-items-center">
+                      <ListGroup.Item
+                        key={value}
+                        className="d-flex justify-content-between align-items-center"
+                      >
                         <span>{`${index + 1}. ${track ? track.label : value}`}</span>
                         <div>
                           <Button
@@ -196,7 +216,11 @@ function ShowcaseSetup() {
                           >
                             {'\u2193'}
                           </Button>
-                          <Button variant="outline-danger" size="sm" onClick={() => removeTrack(value)}>
+                          <Button
+                            variant="outline-danger"
+                            size="sm"
+                            onClick={() => removeTrack(value)}
+                          >
                             Remove
                           </Button>
                         </div>
@@ -238,7 +262,13 @@ function ShowcaseSetup() {
                   />
                 </Form.Group>
               </Col>
-              <Col>
+              {/* - Auction Date input intentionally hidden.
+                  - auctionDate is still tracked in:
+                    state, loadForEdit, resetForm, and the save payload.
+                  - A future cohort can pick up the 'exclusive auctions' feature
+                  from documentation by uncommenting this Col and
+                  building the auction logic around it. */}
+              {/* <Col>
                 <Form.Group className="mb-3">
                   <Form.Label>Auction Date</Form.Label>
                   <Form.Control
@@ -247,7 +277,7 @@ function ShowcaseSetup() {
                     onChange={(e) => setAuctionDate(e.target.value)}
                   />
                 </Form.Group>
-              </Col>
+              </Col> */}
             </Row>
 
             <Form.Group className="mb-3">
@@ -263,7 +293,11 @@ function ShowcaseSetup() {
               ))}
             </Form.Group>
 
-            <Button variant="outline-secondary" type="button" onClick={() => handleSave(true)}>
+            <Button
+              variant="outline-secondary"
+              type="button"
+              onClick={() => handleSave(true)}
+            >
               Save Draft
             </Button>
             <Button variant="primary" type="submit" className="ms-2">

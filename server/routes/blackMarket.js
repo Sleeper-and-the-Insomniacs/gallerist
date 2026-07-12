@@ -155,10 +155,17 @@ blackMarketRouter.delete('/db/blackmarket/buy/:_id', (req, res) => {
   const userId = req.user.doc._id;
   const { name, googleId } = req.user.doc;
 
+  // reset prices after a purchase
+  const resetRemainingPrices = () => BlackMarketArt.updateMany(
+    { ownerId: 'black_market' },
+    { price: 5000, haggleCount: 0 },
+  );
+
   if (_id.startsWith('voucher_')) {
     return User.findByIdAndUpdate(userId, {
       $inc: { wallet: -5000, vouchers: 1 },
     })
+      .then(() => resetRemainingPrices())
       .then(() => res.sendStatus(200))
       .catch((err) => res.status(500).send(err));
   }
@@ -174,6 +181,7 @@ blackMarketRouter.delete('/db/blackmarket/buy/:_id', (req, res) => {
           .then(() => Vault.findOneAndUpdate({ owner: userId }, { $push: { artGallery: listing.artwork } }))
           .then(() => Art.findByIdAndUpdate(listing.artwork, { userGallery: { name, googleId } }))
           .then(() => BlackMarketArt.findByIdAndDelete(_id))
+          .then(() => resetRemainingPrices())
           .then(() => res.sendStatus(200));
       });
     })

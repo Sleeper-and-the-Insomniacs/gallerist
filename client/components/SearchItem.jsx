@@ -8,7 +8,6 @@ import Modal from 'react-bootstrap/Modal';
 function SearchItem({ image, idSearch, isOwned }) {
   // modal state variable
   const [lgShow, setLgShow] = useState(false);
-  // console.log(image);
   return (
     <Col key={image.id}>
       <Image

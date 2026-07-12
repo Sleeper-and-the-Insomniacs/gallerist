@@ -52,11 +52,10 @@ blackMarketRouter.get('/db/blackmarket', (req, res) => {
       let voucherCount = 0;
 
       // if the black market isn't full- we use vouchers to fill it
-      if (artCount === 0) voucherCount = 3;
-      else if (artCount === 1) voucherCount = 2;
-      else if (artCount === 2) voucherCount = 1;
+      if (artCount < 3) {
+        voucherCount = 3 - artCount;
       // if black market is full- still a chance for a voucher to appear
-      else if (artCount >= 3 && Math.random() < 0.05) voucherCount = 1;
+      } else if (Math.random() < 0.05) { voucherCount = 1; }
 
       // create voucher objects
       const vouchers = Array(voucherCount).fill(null).map((_, i) => ({
@@ -73,7 +72,7 @@ blackMarketRouter.get('/db/blackmarket', (req, res) => {
       const shuffled = combined.sort(() => 0.5 - Math.random());
       const selected = shuffled.slice(0, 3);
 
-      res.status(200).send(selected || []);
+      res.status(200).send(selected);
     })
     .catch((err) => {
       console.error('Failed to retrieve Black Market Art listings', err);

@@ -98,6 +98,7 @@ function Search() {
           return;
         }
 
+        // eslint-disable-next-line consistent-return
         return postToGallery(artObj, imageUrl);
       })
       .catch((err) => console.error(err));

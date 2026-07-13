@@ -7,29 +7,10 @@ import Row from 'react-bootstrap/Row';
 import Col from 'react-bootstrap/Col';
 import Form from 'react-bootstrap/Form';
 import Button from 'react-bootstrap/Button';
-import ListGroup from 'react-bootstrap/ListGroup';
 import Card from 'react-bootstrap/Card';
 
-const TRACKS = [
-  { label: '033', value: '/audio/033.m4a' },
-  { label: 'amb062', value: '/audio/amb062.m4a' },
-  { label: 'amb064_08vx', value: '/audio/amb064_08vx.m4a' },
-  { label: 'amb064_21', value: '/audio/amb064_21.m4a' },
-  { label: 'dyingRecursively-yes', value: '/audio/dyingRecursively-yes.m4a' },
-  { label: 'dyingRecursively', value: '/audio/dyingRecursively.m4a' },
-  {
-    label: 'forSleepersAndInsomniacs',
-    value: '/audio/forSleepersAndInsomniacs.m4a',
-  },
-  {
-    label: 'justBeforeGarbageCollected',
-    value: '/audio/justBeforeGarbageCollected.m4a',
-  },
-  { label: 'leaking', value: '/audio/leaking.m4a' },
-  { label: 'noEndpoint', value: '/audio/noEndpoint.m4a' },
-  { label: 'req:res', value: '/audio/req:res.m4a' },
-  { label: 'sleeperAgent', value: '/audio/sleeperAgent.m4a' },
-];
+// eslint-disable-next-line import/no-unresolved
+import TRACKS from './tracks';
 
 function ShowcaseSetup() {
   const location = useLocation();
@@ -39,18 +20,19 @@ function ShowcaseSetup() {
   const [editingId, setEditingId] = useState(null);
 
   const [title, setTitle] = useState('');
-  const [message, setMessage] = useState('');
+  const [description, setdescription] = useState('');
   const [playlist, setPlaylist] = useState([]);
   const [shuffle, setShuffle] = useState(false);
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [auctionDate, setAuctionDate] = useState('');
   const [artPieces, setArtPieces] = useState([]);
+  const [saveError, setSaveError] = useState('');
 
   function loadForEdit(showcase) {
     setEditingId(showcase._id);
     setTitle(showcase.title || '');
-    setMessage(showcase.message || '');
+    setdescription(showcase.description || '');
     setPlaylist(showcase.playlist || []);
     setShuffle(!!showcase.shuffle);
     setStartDate(showcase.startDate ? showcase.startDate.slice(0, 10) : '');
@@ -77,7 +59,7 @@ function ShowcaseSetup() {
   function resetForm() {
     setEditingId(null);
     setTitle('');
-    setMessage('');
+    setdescription('');
     setPlaylist([]);
     setShuffle(false);
     setStartDate('');
@@ -92,10 +74,19 @@ function ShowcaseSetup() {
       : [...prev, artId]));
   }
 
+  function toggleAllArt() {
+    setArtPieces((prev) => (prev.length === myArt.length
+      ? [] : myArt.map((art) => art._id)));
+  }
+
   function togglePlaylistTrack(value) {
     setPlaylist((prev) => (prev.includes(value)
       ? prev.filter((v) => v !== value)
       : [...prev, value]));
+  }
+
+  function toggleAllTracks() {
+    setPlaylist((prev) => (prev.length === TRACKS.length ? [] : TRACKS.map((t) => t.value)));
   }
 
   function moveTrack(index, direction) {
@@ -108,14 +99,11 @@ function ShowcaseSetup() {
     });
   }
 
-  function removeTrack(value) {
-    setPlaylist((prev) => prev.filter((v) => v !== value));
-  }
-
   function handleSave(isDraft) {
+    setSaveError('');
     const payload = {
       title,
-      message,
+      description,
       playlist,
       shuffle,
       startDate,
@@ -133,7 +121,15 @@ function ShowcaseSetup() {
       .then(({ data }) => {
         navigate(isDraft ? '/home/profile' : `/home/showcase/${data._id}`);
       })
-      .catch((err) => console.error('Could not save showcase: ', err));
+      .catch((err) => {
+        if (err.response && err.response.status === 409) {
+          setSaveError(
+            'One or more selected art pieces are already in another showcase. Deselect them and try again.',
+          );
+        } else {
+          console.error('Could not save showcase: ', err);
+        }
+      });
   }
 
   function handleSubmit(event) {
@@ -171,73 +167,72 @@ function ShowcaseSetup() {
               />
             </Form.Group>
             <Form.Group className="mb-3">
-              <Form.Label>Message</Form.Label>
+              <Form.Label>Description</Form.Label>
               <Form.Control
                 as="textarea"
-                value={message}
-                onChange={(e) => setMessage(e.target.value)}
+                value={description}
+                onChange={(e) => setdescription(e.target.value)}
               />
             </Form.Group>
 
             <Form.Group className="mb-3">
-              <Form.Label>Add Tracks</Form.Label>
-              {TRACKS.map((track) => (
-                <Form.Check
-                  key={track.value}
-                  type="checkbox"
-                  label={track.label}
-                  checked={playlist.includes(track.value)}
-                  onChange={() => togglePlaylistTrack(track.value)}
-                />
-              ))}
-            </Form.Group>
-
-            {playlist.length > 0 && (
-              <Form.Group className="mb-3">
-                <Form.Label>Playback Order</Form.Label>
-                <ListGroup>
+              <Form.Label>Tracks</Form.Label>
+              <Form.Check
+                type="checkbox"
+                label="Select All"
+                className="mb-2 fw-bold"
+                checked={TRACKS.length > 0 && playlist.length === TRACKS.length}
+                onChange={toggleAllTracks}
+              />
+              <Row>
+                <Col md={6}>
+                  <Form.Label className="small text-muted">Available</Form.Label>
+                  {TRACKS.filter((track) => !playlist.includes(track.value)).map((track) => (
+                    <Form.Check
+                      key={track.value}
+                      type="checkbox"
+                      label={track.label}
+                      checked={false}
+                      onChange={() => togglePlaylistTrack(track.value)}
+                    />
+                  ))}
+                </Col>
+                <Col md={6}>
+                  <Form.Label className="small text-muted">Playlist (Playback Order)</Form.Label>
                   {playlist.map((value, index) => {
                     const track = TRACKS.find((t) => t.value === value);
                     return (
-                      <ListGroup.Item
-                        key={value}
-                        className="d-flex justify-content-between align-items-center"
-                      >
-                        <span>{`${index + 1}. ${track ? track.label : value}`}</span>
-                        <div>
-                          <Button
-                            variant="outline-secondary"
-                            size="sm"
-                            className="me-1"
-                            disabled={index === 0}
-                            onClick={() => moveTrack(index, -1)}
-                          >
-                            {'\u2191'}
-                          </Button>
-                          <Button
-                            variant="outline-secondary"
-                            size="sm"
-                            className="me-1"
-                            disabled={index === playlist.length - 1}
-                            onClick={() => moveTrack(index, 1)}
-                          >
-                            {'\u2193'}
-                          </Button>
-                          <Button
-                            variant="outline-danger"
-                            size="sm"
-                            onClick={() => removeTrack(value)}
-                          >
-                            Remove
-                          </Button>
-                        </div>
-                      </ListGroup.Item>
+                      <div key={value} className="d-flex align-items-center mb-1">
+                        <Form.Check
+                          type="checkbox"
+                          label={track ? track.label : value}
+                          checked
+                          onChange={() => togglePlaylistTrack(value)}
+                          className="flex-grow-1"
+                        />
+                        <Button
+                          variant="outline-secondary"
+                          size="sm"
+                          className="me-1"
+                          disabled={index === 0}
+                          onClick={() => moveTrack(index, -1)}
+                        >
+                          {'\u2191'}
+                        </Button>
+                        <Button
+                          variant="outline-secondary"
+                          size="sm"
+                          disabled={index === playlist.length - 1}
+                          onClick={() => moveTrack(index, 1)}
+                        >
+                          {'\u2193'}
+                        </Button>
+                      </div>
                     );
                   })}
-                </ListGroup>
-              </Form.Group>
-            )}
-
+                </Col>
+              </Row>
+            </Form.Group>
             <Form.Group className="mb-3">
               <Form.Check
                 type="switch"
@@ -289,6 +284,13 @@ function ShowcaseSetup() {
 
             <Form.Group className="mb-3">
               <Form.Label>Choose Art From Your Gallery</Form.Label>
+              <Form.Check
+                type="checkbox"
+                label="Select All"
+                className="mb-2 fw-bold"
+                checked={myArt.length > 0 && artPieces.length === myArt.length}
+                onChange={toggleAllArt}
+              />
               {myArt.map((art) => (
                 <Form.Check
                   key={art._id}
@@ -315,6 +317,7 @@ function ShowcaseSetup() {
                 Cancel Edit
               </Button>
             )}
+            {saveError && <p className="text-danger mt-2">{saveError}</p>}
           </Form>
         </Card.Body>
       </Card>

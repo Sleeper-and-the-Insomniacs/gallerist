@@ -1,3 +1,4 @@
+/* eslint-disable no-shadow */
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
@@ -169,6 +170,7 @@ function Profile() {
   }
 
   // Flip a draft showcase to published
+  // eslint-disable-next-line no-shadow
   function publishShowcase(id) {
     axios
       .patch(`/showcase/update/${id}`, { isDraft: false })
@@ -328,6 +330,14 @@ function Profile() {
 
   // Iterates over myShowcases, splitting into Draft/Active accordion groups
   // Drafts get Edit/Publish/Delete; Active (published) get Edit/Delete plus a link to view
+  function isExpired(showcase) {
+    return (
+      !showcase.isDraft
+      && showcase.endDate
+      && new Date(showcase.endDate) < new Date()
+    );
+  }
+
   const showcasesDiv = myShowcases.length ? (
     <Accordion defaultActiveKey="0">
       <Accordion.Item eventKey="0">
@@ -387,9 +397,55 @@ function Profile() {
         <Accordion.Header>Active Showcases:</Accordion.Header>
         <Accordion.Body>
           <ListGroup>
-            {myShowcases.filter((showcase) => !showcase.isDraft).length ? (
+            {myShowcases.filter(
+              (showcase) => !showcase.isDraft && !isExpired(showcase),
+            ).length ? (
+                myShowcases
+                  .filter((showcase) => !showcase.isDraft && !isExpired(showcase))
+                  .map((showcase) => (
+                    <ListGroup.Item key={showcase._id}>
+                      <Container>
+                        <Row>
+                          <Col sm="8">
+                            <Link to={`/home/showcase/${showcase._id}`}>
+                              <strong>{showcase.title}</strong>
+                            </Link>
+                          </Col>
+                          <Col sm="2">
+                            <Button
+                              variant="outline-primary"
+                              size="sm"
+                              onClick={() => editShowcase(showcase)}
+                            >
+                              Edit
+                            </Button>
+                          </Col>
+                          <Col sm="2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => deleteShowcase(showcase._id, showcase.title)}
+                            >
+                              ❌
+                            </Button>
+                          </Col>
+                        </Row>
+                      </Container>
+                    </ListGroup.Item>
+                  ))
+              ) : (
+                <ListGroup.Item>No active showcases.</ListGroup.Item>
+              )}
+          </ListGroup>
+        </Accordion.Body>
+      </Accordion.Item>
+      <Accordion.Item eventKey="2">
+        <Accordion.Header>Expired Showcases:</Accordion.Header>
+        <Accordion.Body>
+          <ListGroup>
+            {myShowcases.filter((showcase) => isExpired(showcase)).length ? (
               myShowcases
-                .filter((showcase) => !showcase.isDraft)
+                .filter((showcase) => isExpired(showcase))
                 .map((showcase) => (
                   <ListGroup.Item key={showcase._id}>
                     <Container>
@@ -422,7 +478,7 @@ function Profile() {
                   </ListGroup.Item>
                 ))
             ) : (
-              <ListGroup.Item>No active showcases.</ListGroup.Item>
+              <ListGroup.Item>No expired showcases.</ListGroup.Item>
             )}
           </ListGroup>
         </Accordion.Body>

@@ -5,6 +5,39 @@ const showcaseRouter = express.Router();
 
 const { Showcase } = require('../../db/index');
 
+const ONE_WEEK_MS = 7 * 24 * 60 * 60 * 1000;
+
+// Lock art pieces to one active showcase (draft or active) at a time.
+function findConflictingArtIds(artPieces, excludeId) {
+  if (!artPieces || !artPieces.length) {
+    return Promise.resolve([]);
+  }
+  const query = {
+    artPieces: { $in: artPieces },
+    $or: [
+      { isDraft: true },
+      { isDraft: false, endDate: null },
+      { isDraft: false, endDate: { $gte: new Date() } },
+    ],
+  };
+  if (excludeId) {
+    query._id = { $ne: excludeId };
+  }
+  return Showcase.find(query).then((conflicts) => {
+    const requested = new Set(artPieces.map(String));
+    const conflicting = new Set();
+    conflicts.forEach((showcase) => {
+      showcase.artPieces.forEach((pieceId) => {
+        const idStr = String(pieceId);
+        if (requested.has(idStr)) {
+          conflicting.add(idStr);
+        }
+      });
+    });
+    return Array.from(conflicting);
+  });
+}
+
 // READ: all published showcases, for the public browse list (drafts stay hidden)
 // Expired showxases drop off but remain visible via the curator's own PalGallery page
 showcaseRouter.get('/get', (req, res) => {
@@ -76,7 +109,7 @@ showcaseRouter.post('/create', (req, res) => {
   const { _id, name } = req.user.doc;
   const {
     title,
-    message,
+    description,
     playlist,
     shuffle,
     artPieces,
@@ -86,16 +119,66 @@ showcaseRouter.post('/create', (req, res) => {
     isDraft,
   } = req.body;
 
+  findConflictingArtIds(artPieces).then((conflicts) => {
+    if (conflicts.length) {
+      res.status(409).json({
+        error: 'Some art pieces are already in another showcase',
+        conflicts,
+      });
+      return;
+    }
+
+    let effectiveStartDate = startDate;
+    let effectiveEndDate = endDate;
+    if (isDraft === false) {
+      effectiveStartDate = startDate || new Date();
+      effectiveEndDate = endDate
+        || new Date(new Date(effectiveStartDate).getTime() + ONE_WEEK_MS);
+    }
+
+    Showcase.create({
+      curator: _id,
+      curatorName: name,
+      title,
+      description,
+      playlist,
+      shuffle,
+      artPieces,
+      startDate: effectiveStartDate,
+      endDate: effectiveEndDate,
+      auctionDate,
+      isDraft,
+    })
+      .then((newShowcase) => {
+        res.status(201).send(newShowcase);
+      })
+      .catch((err) => {
+        console.error(
+          'Showcase conflict check: Failed ',
+          err,
+        );
+        res.sendStatus(500);
+      });
+  });
+
+  let effectiveStartDate = startDate;
+  let effectiveEndDate = endDate;
+
+  if (isDraft === false) {
+    effectiveStartDate = startDate || new Date();
+    effectiveEndDate = endDate || new Date(new Date(effectiveStartDate).getTime() + ONE_WEEK_MS);
+  }
+
   Showcase.create({
     curator: _id,
     curatorName: name,
     title,
-    message,
+    description,
     playlist,
     shuffle,
     artPieces,
-    startDate,
-    endDate,
+    startDate: effectiveStartDate,
+    endDate: effectiveEndDate,
     auctionDate,
     isDraft,
   })
@@ -117,12 +200,44 @@ showcaseRouter.patch('/update/:id', (req, res) => {
     return;
   }
 
-  Showcase.findOneAndUpdate({ _id: id, curator: _id }, req.body, { new: true })
+  Showcase.findOne({ _id: id, curator: _id })
+    .then((existing) => {
+      if (!existing) {
+        res.sendStatus(404);
+        return null;
+      }
+
+      const updateBody = { ...req.body };
+
+      return findConflictingArtIds(updateBody.artPieces, id).then((conflicts) => {
+        if (conflicts.length) {
+          res.status(409).json({
+            error: 'Some art pieces are already in another showcase',
+            conflicts,
+          });
+          return null;
+        }
+
+        const goingLive = updateBody.isDraft === false
+        || (updateBody.isDraft === undefined && existing.isDraft === false);
+
+        if (goingLive) {
+          const effectiveStartDate = updateBody.startDate || existing.startDate || new Date();
+
+          updateBody.startDate = effectiveStartDate;
+          updateBody.endDate = updateBody.endDate
+          || existing.endDate
+          || new Date(new Date(effectiveStartDate).getTime() + ONE_WEEK_MS);
+        }
+
+        return Showcase.findOneAndUpdate({ _id: id, curator: _id }, updateBody, {
+          new: true,
+        });
+      });
+    })
     .then((updated) => {
       if (updated) {
         res.status(200).send(updated);
-      } else {
-        res.sendStatus(404);
       }
     })
     .catch((err) => {

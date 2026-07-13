@@ -72,7 +72,7 @@ const ShowcaseSchema = new Schema({
     default: true,
   },
   title: String,
-  message: String,
+  description: String,
   playlist: [String],
   shuffle: Boolean,
   artPieces: [{

@@ -5,6 +5,8 @@ const showcaseRouter = express.Router();
 
 const { Showcase } = require('../../db/index');
 
+const ONE_WEEK_MS = 7 * 24 * 60 * 60 * 1000;
+
 // READ: all published showcases, for the public browse list (drafts stay hidden)
 // Expired showxases drop off but remain visible via the curator's own PalGallery page
 showcaseRouter.get('/get', (req, res) => {
@@ -86,6 +88,14 @@ showcaseRouter.post('/create', (req, res) => {
     isDraft,
   } = req.body;
 
+  let effectiveStartDate = startDate;
+  let effectiveEndDate = endDate;
+
+  if (isDraft === false) {
+    effectiveStartDate = startDate || new Date();
+    effectiveEndDate = endDate || new Date(new Date(effectiveStartDate).getTime() + ONE_WEEK_MS);
+  }
+
   Showcase.create({
     curator: _id,
     curatorName: name,
@@ -94,8 +104,8 @@ showcaseRouter.post('/create', (req, res) => {
     playlist,
     shuffle,
     artPieces,
-    startDate,
-    endDate,
+    startDate: effectiveStartDate,
+    endDate: effectiveEndDate,
     auctionDate,
     isDraft,
   })
@@ -117,7 +127,29 @@ showcaseRouter.patch('/update/:id', (req, res) => {
     return;
   }
 
-  Showcase.findOneAndUpdate({ _id: id, curator: _id }, req.body, { new: true })
+  Showcase.findOne({ _id: id, curator: _id })
+    .then((existing) => {
+      if (!existing) {
+        res.sendStatus(404);
+        return null;
+      }
+
+      const updateBody = { ...req.body };
+      const goingLive = updateBody.isDraft === false
+        || (updateBody.isDraft === undefined && existing.isDraft === false);
+
+      if (goingLive) {
+        const effectiveStartDate = updateBody.startDate || existing.startDate || new Date();
+
+        updateBody.startDate = effectiveStartDate;
+        updateBody.endDate = updateBody.endDate
+          || existing.endDate
+          || new Date(new Date(effectiveStartDate).getTime() + ONE_WEEK_MS);
+      }
+      return Showcase.findOneAndUpdate({ _id: id, curator: _id }, updateBody, {
+        new: true,
+      });
+    })
     .then((updated) => {
       if (updated) {
         res.status(200).send(updated);

@@ -52,9 +52,13 @@ function Canvas() {
   }
 
   function startStroke(e) {
+    const { x, y } = getScaledPoint(e);
+    if (tool === 'bucket') {
+      floodFill(x, y, color);
+      return;
+    }
     isPainting.current = true;
     const ctx = paintCanvasRef.current.getContext('2d');
-    const { x, y } = getScaledPoint(e);
     ctx.beginPath();
     ctx.moveTo(x, y);
     ctx.lineCap = 'round';
@@ -69,9 +73,11 @@ function Canvas() {
     ctx.lineTo(x, y);
     ctx.lineWidth = brushSize;
     ctx.strokeStyle = color;
-    tool === 'brush'
-      ? ctx.globalCompositeOperation = 'source-over'
-      : ctx.globalCompositeOperation = 'destination-out';
+    if (tool === 'brush') {
+      ctx.globalCompositeOperation = 'source-over';
+    } else if (tool === 'eraser') {
+      ctx.globalCompositeOperation = 'destination-out';
+    }
     ctx.stroke();
   }
 
@@ -123,7 +129,6 @@ function Canvas() {
       axios.put(`/db/drawings/${currentDrawing._id}`, {
         art: {
           imageUrl,
-          title,
         },
       })
         .then((res) => {
@@ -170,52 +175,110 @@ function Canvas() {
     };
   }
 
+  function floodFill(startX, startY, fillColor) {
+    const canvas = paintCanvasRef.current;
+    const ctx = canvas.getContext('2d');
+    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const { data, width, height } = imageData;
+
+    const startX_int = Math.floor(startX);
+    const startY_int = Math.floor(startY);
+
+    function getPixelIndex(x, y) {
+      return (y * width + x) * 4;
+    }
+
+    const startIdx = getPixelIndex(startX_int, startY_int);
+    const startColor = [data[startIdx], data[startIdx + 1], data[startIdx + 2], data[startIdx + 3]];
+
+    const fillRGBA = hexToRGBA(fillColor);
+
+    if (colorsMatch(startColor, fillRGBA)) return;
+
+    const queue = [[startX_int, startY_int]];
+
+    while (queue.length) {
+      const [x, y] = queue.pop();
+      if (x < 0 || x >= width || y < 0 || y >= height) continue;
+
+      const idx = getPixelIndex(x, y);
+      const currentColor = [data[idx], data[idx + 1], data[idx + 2], data[idx + 3]];
+      if (!colorsMatch(currentColor, startColor)) continue;
+
+      data[idx] = fillRGBA[0];
+      data[idx + 1] = fillRGBA[1];
+      data[idx + 2] = fillRGBA[2];
+      data[idx + 3] = fillRGBA[3];
+
+      queue.push([x + 1, y], [x - 1, y], [x, y + 1], [x, y - 1]);
+    }
+
+    ctx.putImageData(imageData, 0, 0);
+  }
+
+  function colorsMatch(a, b, tolerance = 32) {
+    return (
+      Math.abs(a[0] - b[0]) <= tolerance
+      && Math.abs(a[1] - b[1]) <= tolerance
+      && Math.abs(a[2] - b[2]) <= tolerance
+      && Math.abs(a[3] - b[3]) <= tolerance
+    );
+  }
+
+  function hexToRGBA(hex) {
+    const r = parseInt(hex.slice(1, 3), 16);
+    const g = parseInt(hex.slice(3, 5), 16);
+    const b = parseInt(hex.slice(5, 7), 16);
+    return [r, g, b, 255];
+  }
+
   return (
     <div>
-      <div className="d-flex align-items-center gap-3 flex-wrap bg-light sticky-top p-2">
-        <div className="d-flex align-items-center gap-2">
-          <Form onSubmit={saveDrawing} className="d-flex align-items-center gap-2">
-            <Form.Control
-              size="sm"
-              type="text"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="Title your Drawing"
-              style={{ width: '130px' }}
-            />
-            <Button variant="primary" size="sm" type="submit">
-              Save
-            </Button>
-          </Form>
-          <span className="small">Brush Size</span>
-          <input
-            type="range"
-            min="0.5"
-            max="15"
-            step="0.1"
-            value={brushSize}
-            onChange={adjustBrushSize}
+      <div className="d-flex align-items-center gap-2 flex-wrap bg-light p-2">
+        <Form onSubmit={saveDrawing} className="d-flex align-items-center gap-2">
+          <Form.Control
+            size="sm"
+            type="text"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder="Title your Drawing"
+            style={{ width: '130px' }}
           />
-          <input
-            type="color"
-            value={color}
-            onChange={adjustColor}
-            style={{ width: '32px', height: '32px', padding: '2px' }}
-          />
-          <Button variant="dark" size="sm" onClick={() => setTool('brush')}>
-            Brush
+          <Button variant="primary" size="sm" type="submit">
+            Save
           </Button>
-          <Button variant="dark" size="sm" onClick={() => setTool('eraser')}>
-            Eraser
-          </Button>
+        </Form>
+        <span className="small">Brush Size</span>
+        <input
+          type="range"
+          min="0.5"
+          max="15"
+          step="0.1"
+          value={brushSize}
+          onChange={adjustBrushSize}
+        />
+        <input
+          type="color"
+          value={color}
+          onChange={adjustColor}
+          style={{ width: '32px', height: '32px', padding: '2px' }}
+        />
+        <Button variant="dark" size="sm" onClick={() => setTool('brush')}>
+          Brush
+        </Button>
+        <Button variant="dark" size="sm" onClick={() => setTool('eraser')}>
+          Eraser
+        </Button>
+        <Button variant="dark" size="sm" onClick={() => setTool('bucket')}>
+          Bucket
+        </Button>
 
-          <Button variant="dark" size="sm" onClick={() => moveHistory(true)}>
-            Undo
-          </Button>
-          <Button variant="dark" size="sm" onClick={() => moveHistory(false)}>
-            Redo
-          </Button>
-        </div>
+        <Button variant="dark" size="sm" onClick={() => moveHistory(true)}>
+          Undo
+        </Button>
+        <Button variant="dark" size="sm" onClick={() => moveHistory(false)}>
+          Redo
+        </Button>
       </div>
       <div style={{
         position: 'relative',

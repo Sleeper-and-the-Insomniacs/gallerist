@@ -57,7 +57,6 @@ function NavBar() {
           </Navbar.Collapse>
         </Container>
       </Navbar>
-      <br />
       <Outlet />
     </>
   );

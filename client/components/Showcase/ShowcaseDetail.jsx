@@ -5,6 +5,10 @@ import axios from 'axios';
 import Container from 'react-bootstrap/Container';
 import Row from 'react-bootstrap/Row';
 import Carousel from 'react-bootstrap/Carousel';
+import Button from 'react-bootstrap/Button';
+
+// eslint-disable-next-line import/no-unresolved
+import TRACKS from './tracks';
 
 function ShowcaseDetail() {
   const { id } = useParams();
@@ -35,8 +39,14 @@ function ShowcaseDetail() {
     setTrackIndex(0);
   }, [showcase]);
 
+  function goToTrack(offset) {
+    setTrackIndex(
+      (prev) => (prev + offset + playOrder.length) % playOrder.length,
+    );
+  }
+
   function handleTrackEnded() {
-    setTrackIndex((prev) => (prev + 1) % playOrder.length);
+    goToTrack(1);
   }
 
   if (!showcase) {
@@ -46,6 +56,16 @@ function ShowcaseDetail() {
       </Container>
     );
   }
+
+  if (!showcase) {
+    return (
+      <Container>
+        <p>Loading showcase...</p>
+      </Container>
+    );
+  }
+
+  const currentTrack = TRACKS.find((t) => t.value === playOrder[trackIndex]);
 
   return (
     <Container>
@@ -83,8 +103,28 @@ function ShowcaseDetail() {
           >
             <track kind="captions" />
           </audio>
+          <div className="mt-1">
+            <Button
+              variant="outline-secondary"
+              size="sm"
+              className="me-2"
+              disabled={playOrder.length < 2}
+              onClick={() => goToTrack(-1)}
+            >
+              {'\u25C0 Prev'}
+            </Button>
+            <Button
+              variant="outline-secondary"
+              size="sm"
+              className="me-2"
+              disabled={playOrder.length < 2}
+              onClick={() => goToTrack(1)}
+            >
+              {'Next \u25B6'}
+            </Button>
+          </div>
           <p className="text-muted mt-1">
-            {`Now playing track ${trackIndex + 1} of ${playOrder.length}${showcase.shuffle ? ' (shuffled)' : ''}`}
+            {`Now playing track ${currentTrack ? currentTrack.label : 'track'} (${trackIndex + 1} of ${playOrder.length}${showcase.shuffle ? ', shuffled' : ''}`}
           </p>
         </Row>
       )}

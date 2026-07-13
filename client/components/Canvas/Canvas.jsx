@@ -2,7 +2,10 @@ import axios from 'axios';
 import React, { useEffect, useRef, useState } from 'react';
 import Button from 'react-bootstrap/Button';
 import Form from 'react-bootstrap/Form';
+import OverlayTrigger from 'react-bootstrap/OverlayTrigger';
+import Tooltip from 'react-bootstrap/Tooltip';
 import DrawingList from './DrawingList';
+
 
 function Canvas() {
   const paintCanvasRef = useRef(null);
@@ -31,6 +34,9 @@ function Canvas() {
       }
       if (e.key === 'e') {
         setTool('eraser');
+      }
+      if (e.key === 'v') {
+        setTool('bucket');
       }
     }
 
@@ -263,22 +269,32 @@ function Canvas() {
           onChange={adjustColor}
           style={{ width: '32px', height: '32px', padding: '2px' }}
         />
-        <Button variant="dark" size="sm" onClick={() => setTool('brush')}>
-          Brush
-        </Button>
-        <Button variant="dark" size="sm" onClick={() => setTool('eraser')}>
-          Eraser
-        </Button>
-        <Button variant="dark" size="sm" onClick={() => setTool('bucket')}>
-          Bucket
-        </Button>
+        <OverlayTrigger placement="bottom" overlay={<Tooltip>b</Tooltip>}>
+          <Button variant="dark" size="sm" onClick={() => setTool('brush')}>
+            Brush
+          </Button>
+        </OverlayTrigger>
+        <OverlayTrigger placement="bottom" overlay={<Tooltip>e</Tooltip>}>
+          <Button variant="dark" size="sm" onClick={() => setTool('eraser')}>
+            Eraser
+          </Button>
+        </OverlayTrigger>
+        <OverlayTrigger placement="bottom" overlay={<Tooltip>v</Tooltip>}>
+          <Button variant="dark" size="sm" onClick={() => setTool('bucket')}>
+            Bucket
+          </Button>
+        </OverlayTrigger>
 
-        <Button variant="dark" size="sm" onClick={() => moveHistory(true)}>
-          Undo
-        </Button>
-        <Button variant="dark" size="sm" onClick={() => moveHistory(false)}>
-          Redo
-        </Button>
+        <OverlayTrigger placement="bottom" overlay={<Tooltip>ctrl + z</Tooltip>}>
+          <Button variant="dark" size="sm" onClick={() => moveHistory(true)}>
+            Undo
+          </Button>
+        </OverlayTrigger>
+        <OverlayTrigger placement="bottom" overlay={<Tooltip>ctrl + x</Tooltip>}>
+          <Button variant="dark" size="sm" onClick={() => moveHistory(false)}>
+            Redo
+          </Button>
+        </OverlayTrigger>
       </div>
       <div style={{
         position: 'relative',

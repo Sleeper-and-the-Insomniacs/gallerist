@@ -123,7 +123,7 @@ function Canvas() {
         art: { imageUrl },
       })
         .then((res) => {
-          setDrawings((prev) => prev.map((d) => (d.id === res.data.id ? res.data : d)));
+          setDrawings((prev) => prev.map((d) => (d._id === res.data._id ? res.data : d)));
         })
         .catch((err) => console.log('Save failed: ', err));
     }
@@ -132,7 +132,7 @@ function Canvas() {
   function loadDrawing(id) {
     const canvas = paintCanvasRef.current;
     const ctx = canvas.getContext('2d');
-    const drawing = drawings.find((d) => d.id === id);
+    const drawing = drawings.find((d) => d._id === id);
 
     if (!drawing) {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -229,16 +229,6 @@ function Canvas() {
           onMouseUp={stopStroke}
         />
       </div>
-      <Form.Select
-        size="sm"
-        onChange={(e) => loadDrawing(e.target.value)}
-        style={{ width: '160px' }}
-      >
-        <option value="">New Drawing</option>
-        {drawings.map((d) => (
-          <option value={d.id} key={d.id}>{d.title}</option>
-        ))}
-      </Form.Select>
       <DrawingList
         drawings={drawings}
         currentDrawing={currentDrawing}
